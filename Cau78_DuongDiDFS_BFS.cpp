@@ -1,91 +1,93 @@
-
 #include <bits/stdc++.h>
+
 using namespace std;
 
-int n, m;
-vector<int> adj[1005];
-int parentDFS[1005], parentBFS[1005];
-bool visited[1005];
+vector<int> dfs_parents(const vector<vector<int>> &adj, int n) {
+    vector<int> parent(n + 1, -1);
+    parent[1] = 0;
 
-void DFS(int u) {
-    visited[u] = true;
-    for (int v : adj[u]) {
-        if (!visited[v]) {
-            parentDFS[v] = u;
-            DFS(v);
-        }
-    }
-}
+    vector<int> stack_u(n + 1);
+    vector<int> stack_idx(n + 1);
+    int top = -1;
 
-void BFS() {
-    queue<int> q;
-    fill(visited, visited + n + 1, false);
-    fill(parentBFS, parentBFS + n + 1, -1);
+    stack_u[++top] = 1;
+    stack_idx[top] = 0;
 
-    visited[1] = true;
-    q.push(1);
+    while (top >= 0) {
+        int u = stack_u[top];
+        int idx = stack_idx[top];
 
-    while (!q.empty()) {
-        int u = q.front();
-        q.pop();
-
-        for (int v : adj[u]) {
-            if (!visited[v]) {
-                visited[v] = true;
-                parentBFS[v] = u;
-                q.push(v);
+        if (idx >= (int)adj[u].size()) {
+            top--;
+        } else {
+            stack_idx[top]++;
+            int v = adj[u][idx];
+            if (parent[v] == -1) {
+                parent[v] = u;
+                top++;
+                stack_u[top] = v;
+                stack_idx[top] = 0;
             }
         }
     }
+    return parent;
 }
 
-void printDFS(int u) {
-    if (u != 1 && parentDFS[u] == 0) {
-        cout << -1 << '\n';
+void bfs_path(const vector<vector<int>> &adj, int start, int n, string &out_buf) {
+    vector<int> parent(n + 1, -1);
+    parent[start] = 0;
+    
+    vector<int> queue(n + 1);
+    int head = 0, tail = 0;
+    queue[tail++] = start;
+
+    bool found = false;
+    while (head < tail) {
+        int u = queue[head++];
+        if (u == 1) {
+            found = true;
+            break;
+        }
+        for (int v : adj[u]) {
+            if (parent[v] == -1) {
+                parent[v] = u;
+                queue[tail++] = v;
+                if (v == 1) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (found) break;
+    }
+
+    if (parent[1] == -1) {
+        out_buf = "-1";
         return;
     }
 
     vector<int> path;
+    int u = 1;
     while (u != 0) {
         path.push_back(u);
-        if (u == 1) break;
-        u = parentDFS[u];
+        u = parent[u];
     }
 
-    if (path.back() != 1) {
-        cout << -1 << '\n';
-        return;
+    out_buf = "";
+    for (int i = (int)path.size() - 1; i >= 0; i--) {
+        out_buf += to_string(path[i]);
+        if (i > 0) out_buf += " ";
     }
-
-    reverse(path.begin(), path.end());
-
-    for (int i = 0; i < (int)path.size(); i++) {
-        if (i) cout << ' ';
-        cout << path[i];
-    }
-    cout << '\n';
-}
-
-void printBFS(int u) {
-    if (!visited[u]) {
-        cout << -1 << '\n';
-        return;
-    }
-
-    cout << u;
-    while (u != 1) {
-        u = parentBFS[u];
-        cout << ' ' << u;
-    }
-    cout << '\n';
 }
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
 
-    cin >> n >> m;
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
 
+    vector<vector<int>> adj(n + 1);
     for (int i = 0; i < m; i++) {
         int u, v;
         cin >> u >> v;
@@ -93,26 +95,29 @@ int main() {
         adj[v].push_back(u);
     }
 
-    for (int i = 1; i <= n; i++) {
-        sort(adj[i].begin(), adj[i].end());
-    }
+    vector<int> parent = dfs_parents(adj, n);
+    string path_buf;
 
-    fill(parentDFS, parentDFS + n + 1, 0);
-    fill(visited, visited + n + 1, false);
-    DFS(1);
-
-    bool reachableDFS[1005];
-    copy(visited, visited + n + 1, reachableDFS);
-
-    BFS();
-
-    for (int i = 2; i <= n; i++) {
-        if (!reachableDFS[i]) {
-            cout << -1 << '\n';
-        } else {
-            printDFS(i);
+    for (int target = 2; target <= n; target++) {
+        if (parent[target] == -1) {
+            cout << "-1\n-1\n";
+            continue;
         }
-        printBFS(i);
+
+        vector<int> path;
+        int u = target;
+        while (u != 0) {
+            path.push_back(u);
+            u = parent[u];
+        }
+
+        for (int i = (int)path.size() - 1; i >= 0; i--) {
+            cout << path[i] << (i > 0 ? " " : "");
+        }
+        cout << "\n";
+
+        bfs_path(adj, target, n, path_buf);
+        cout << path_buf << "\n";
     }
 
     return 0;
